@@ -24,7 +24,7 @@ import Prelude hiding (catch)
 #endif
 
 import Foreign.Storable (pokeByteOff, peekByteOff)
-import Foreign.C (CInt(..), CShort(..))
+-- import Foreign.C (CInt(..), CShort(..))
 import Foreign.ForeignPtr (withForeignPtr)
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS (length)
@@ -60,10 +60,37 @@ foreign import stdcall unsafe "ntohs" ntohs :: CShort -> CShort
 
 #else
 
+{-
 foreign import ccall unsafe "htonl" htonl :: CInt -> CInt
 foreign import ccall unsafe "ntohl" ntohl :: CInt -> CInt
 foreign import ccall unsafe "htons" htons :: CShort -> CShort
 foreign import ccall unsafe "ntohs" ntohs :: CShort -> CShort
+-}
+-- should use another branch for HaLVM, here just for testing
+import Foreign.C.Types(CUInt, CUShort)
+import Data.Word(Word32, Word16)
+import Data.Bits((.&.), (.|.), shiftL, shiftR)
+
+htonl :: CUInt -> CUInt
+htonl hostlong =
+    fromIntegral y
+      where x = (fromIntegral hostlong) :: Word32
+            y = ((x .&. 0xff000000) `shiftR` 24) .|.
+                ((x .&. 0x00ff0000) `shiftR` 8)  .|.
+                ((x .&. 0x0000ff00) `shiftL` 8)  .|.
+                ((x .&. 0x000000ff) `shiftL` 24)
+
+ntohl :: CUInt -> CUInt
+ntohl = htonl
+
+htons :: CUShort -> CUShort
+htons hostshort =
+    fromIntegral y
+      where x = (fromIntegral hostshort) :: Word16
+            y = ((x .&. 0xff00) `shiftR` 8) .|.  ((x .&. 0x00ff) `shiftL` 8)
+
+ntohs :: CUShort -> CUShort
+ntohs = htons
 
 #endif
 
